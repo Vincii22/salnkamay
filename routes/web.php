@@ -8,4 +8,4 @@ Route::get('/', function () {
 });
 
 
-Route::get('/', [PageController::class, 'index']); // This will use the controller's method
+Route::get('/home', [PageController::class, 'index']); // This will use the controller's method
