@@ -1,4 +1,4 @@
-<nav class="flex justify-between items-center p-4 bg-transparent text-black border-b-2 border-gray-700 rounded-bl-3xl rounded-br-3xl">
+<nav class="flex justify-between items-center p-4 bg-[rgba(255,255,255,0.7)] text-black border-b-1 border-gray-700 rounded-bl-3xl rounded-br-3xl">
     <!-- Left Side: Logo and Text -->
     <div class="flex items-center">
         <a href="{{ url('/home') }}">
