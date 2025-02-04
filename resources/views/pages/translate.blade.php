@@ -34,27 +34,28 @@
             <div class="flex justify-center items-center space-x-4 w-full">
                 <!-- First Button: Text to Sign -->
                 <div class="w-[15%]">
-                    <button class="flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
-                        <i class="text-[#34a5c7] fas fa-sign-language"></i> <!-- Letter T Icon -->
-                        <h3>TEXT TO SIGN</h3>
+                    <button class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
+                        <i class="text-[#34a5c7] group-hover:text-white fas fa-sign-language"></i> <!-- Letter T Icon -->
+                        <h3 class="font-bold">TEXT TO SIGN</h3>
                     </button>
                 </div>
 
                 <!-- Second Button: Voice to Sign -->
                 <div class="w-[15%]">
-                    <button class="flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
-                        <i class="text-[#34a5c7] fas fa-microphone-alt"></i> <!-- Microphone Icon -->
-                        <h3>VOICE TO SIGN</h3>
+                    <button class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
+                        <i class="text-[#34a5c7] group-hover:text-white fas fa-microphone-alt"></i> <!-- Microphone Icon -->
+                        <h3 class="font-bold">VOICE TO SIGN</h3>
                     </button>
                 </div>
 
                 <!-- Third Button: Sign to Text -->
                 <div class="w-[15%]">
-                    <button class="flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
-                        <i class="text-[#34a5c7] fas fa-camera"></i> <!-- Camera Icon -->
-                        <h3>SIGN TO TEXT</h3>
+                    <button class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
+                        <i class="text-[#34a5c7] group-hover:text-white fas fa-camera"></i> <!-- Camera Icon -->
+                        <h3 class="font-bold">SIGN TO TEXT</h3>
                     </button>
                 </div>
+
             </div>
 
             <!-- Bottom border under the buttons -->
