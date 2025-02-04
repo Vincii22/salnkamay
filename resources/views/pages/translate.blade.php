@@ -20,9 +20,31 @@
     <!-- Main container centered vertically and horizontally -->
     <div class="flex justify-center items-center w-full h-[65vh]">
         <!-- Placeholder for image when translate button is clicked -->
-        <div id="image-container" class="hidden">
-            <!-- Image will appear here on button click -->
+        <div id="image-container">
+            @if ($signs->isNotEmpty())
+                <!-- Flex container for displaying items horizontally when there are 2 or more signs -->
+                <div class="w-full flex justify-center items-center flex-wrap gap-2">
+                    @foreach ($signs as $sign)
+                        <!-- If there's only one result, center it and make it 50% width, else flex it with desired width -->
+                        <div class="{{ count($signs) > 1 ? 'w-[25vw] md:w-[30vw] lg:w-[35vw]' : 'w-[50vw]' }} flex-shrink-0">
+                            <!-- Displaying Sign Image or Video -->
+                            @if ($sign->image_path ?? false)
+                                <img src="{{ Storage::url($sign->image_path) }}" alt="Sign Image" class="w-full h-[50vh] object-cover rounded-lg">
+                            @elseif ($sign->video_path ?? false)
+                                <video autoplay loop controls class="w-full h-[50vh] object-cover rounded-lg">
+                                    <source src="{{ Storage::url($sign->video_path) }}" type="video/mp4">
+                                </video>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <p>No results found for your search.</p>
+            @endif
         </div>
+
+
+
     </div>
 
     <!-- Translate Container (at the bottom of the page, centered) -->
@@ -42,7 +64,7 @@
 
                 <!-- Second Button: Voice to Sign -->
                 <div class="w-[15%]">
-                    <button class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
+                    <button id="voice-to-sign" class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
                         <i class="text-[#34a5c7] group-hover:text-white fas fa-microphone-alt"></i> <!-- Microphone Icon -->
                         <h3 class="font-bold">VOICE TO SIGN</h3>
                     </button>
@@ -61,18 +83,25 @@
             <!-- Bottom border under the buttons -->
             <div class="border-b border-gray-300 my-4"></div>
 
-            <!-- Search bar and button -->
+           <!-- Search bar and button -->
             <div class="w-[100%]">
-                <div class="flex items-center space-x-2">
+                <form action="{{ route('translate') }}" method="GET" class="flex items-center space-x-2">
                     <!-- Search Input -->
-                    <input type="text" placeholder="SEARCH FILIPINO SIGN LANGUAGE" class="w-full p-[1vw] bg-[#e1e1e1] rounded-lg border-none focus:ring-2 focus:ring-[#34a5c7]">
+                    <input
+                        type="text"
+                        name="inputText"
+                        placeholder="SEARCH FILIPINO SIGN LANGUAGE"
+                        value="{{ old('inputText') }}"
+                        class="w-full p-[1vw] bg-[#e1e1e1] rounded-lg border-none focus:ring-2 focus:ring-[#34a5c7]"
+                    >
 
                     <!-- Search Button -->
-                    <button class="p-5 bg-[#34a5c7] text-white rounded-lg">
+                    <button type="submit" class="p-5 bg-[#34a5c7] text-white rounded-lg">
                         <i class="text-white fas fa-search"></i> <!-- Magnifying Glass Icon -->
                     </button>
-                </div>
+                </form>
             </div>
+
         </div>
     </div>
 

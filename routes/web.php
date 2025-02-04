@@ -10,4 +10,5 @@ Route::get('/', function () {
 
 Route::get('/home', [PageController::class, 'index']); // This will use the controller's method
 Route::get('/about', [PageController::class, 'about']);
-Route::get('/translate', [PageController::class, 'translate']);
+Route::get('/translate', [PageController::class, 'translate'])->name('translate');
+
