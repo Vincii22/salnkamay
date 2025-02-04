@@ -14,4 +14,8 @@ class PageController extends Controller
     {
         return view('pages.about'); // Return the view for the index page
     }
+    public function translate()
+    {
+        return view('pages.translate'); // Return the view for the index page
+    }
 }

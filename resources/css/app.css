@@ -6,3 +6,11 @@
 .shadow-3d {
     text-shadow: 4px 4px 6px rgba(0, 0, 0, 0.4), -4px -4px 6px rgba(255, 255, 255, 0.2);
 }
+@font-face {
+    font-family: 'Garet';
+    src: url('/public/fonts/Garet-Heavy.otf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+

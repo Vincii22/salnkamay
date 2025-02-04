@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SALINKAMAY</title>
-
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     <!-- Importing Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Minnie+Play&family=Garet&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Minnie+Play&family=Poppins&display=swap" rel="stylesheet">
 
     @vite('resources/css/app.css')
 </head>
@@ -16,8 +16,8 @@
 
 <body class="bg-cover bg-center" style="background-image: url('{{ asset('images/1.png') }}'); background-repeat: no-repeat;">
 
-    <div class="w-full h-screen flex items-center justify-center">
-        <div class="w-11/12 h-[75%] bg-cover bg-center" style="background-image: url('{{ asset('images/7.png') }}'); background-repeat: no-repeat;">
+    <div class="w-full h-screen flex items-center justify-center ">
+        <div class="w-11/12 h-[75%] bg-cover bg-center rounded-2xl mb-20" style="background-image: url('{{ asset('images/7.png') }}'); background-repeat: no-repeat;">
 
             <!-- Main content container with flex layout -->
             <div class="flex w-full h-full">
@@ -36,7 +36,7 @@
 
                     <!-- Button -->
                     <div>
-                        <a href="#" class="bg-white text-pink-500 font-bold py-3 px-8 rounded-full">Start translating</a>
+                        <a href="{{url('/translate')}}" class="bg-white text-pink-500 font-bold py-3 px-8 rounded-full">Start translating</a>
                     </div>
                 </div>
 

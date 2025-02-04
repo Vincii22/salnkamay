@@ -1,7 +1,7 @@
-<nav class="flex justify-between items-center p-4 bg-[rgba(255,255,255,0.7)] text-black border-b-1 border-gray-700 rounded-bl-3xl rounded-br-3xl">
+<nav class="flex justify-between items-center p-4 bg-[rgba(255,255,255,0.6)] text-black border-b-1 border-gray-700 rounded-bl-3xl rounded-br-3xl">
     <!-- Left Side: Logo and Text -->
     <div class="flex items-center">
-        <a href="{{ url('/home') }}">
+        <a href="{{ url('/') }}">
             <img src="{{ asset('images/2.png') }}" alt="Logo" class="h-10 mr-2">
         </a>
         <h4 class="text-lg font-bold">SALINKAMAY</h4>
@@ -10,8 +10,8 @@
     <!-- Middle: Navigation Links -->
     <div>
         <ul class="flex space-x-6">
-            <li><a href="#" class="hover:text-gray-400">Home</a></li>
-            <li><a href="#" class="hover:text-gray-400">About Us</a></li>
+            <li><a href="{{ url('/home')}}" class="hover:text-gray-400">Home</a></li>
+            <li><a href="{{ url('/about')}}" class="hover:text-gray-400">About Us</a></li>
             <li class="relative">
                 <a href="#" class="hover:text-gray-400">More <span class="inline-block transform rotate-90 ml-1">&#x2193;</span></a>
                 <!-- Dropdown Menu -->

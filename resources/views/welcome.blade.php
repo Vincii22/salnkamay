@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SALINKAMAY</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     @vite('resources/css/app.css') <!-- Assuming you're using Laravel Mix/Vite for CSS -->
 </head>
 <body class="bg-cover bg-center" style="background-image: url('{{ asset('images/1.png') }}');">
