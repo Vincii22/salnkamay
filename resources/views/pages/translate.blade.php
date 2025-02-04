@@ -63,8 +63,9 @@
                 </div>
 
                 <!-- Second Button: Voice to Sign -->
+                <!-- Voice to Sign Button -->
                 <div class="w-[15%]">
-                    <button id="voice-to-sign" class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
+                    <button id="startButton" class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
                         <i class="text-[#34a5c7] group-hover:text-white fas fa-microphone-alt"></i> <!-- Microphone Icon -->
                         <h3 class="font-bold">VOICE TO SIGN</h3>
                     </button>
@@ -83,12 +84,13 @@
             <!-- Bottom border under the buttons -->
             <div class="border-b border-gray-300 my-4"></div>
 
-           <!-- Search bar and button -->
+          <!-- Search bar and button -->
             <div class="w-[100%]">
                 <form action="{{ route('translate') }}" method="GET" class="flex items-center space-x-2">
                     <!-- Search Input -->
                     <input
                         type="text"
+                        id="searchInput"
                         name="inputText"
                         placeholder="SEARCH FILIPINO SIGN LANGUAGE"
                         value="{{ old('inputText') }}"
@@ -102,9 +104,71 @@
                 </form>
             </div>
 
+
+
+
+
         </div>
     </div>
 
+    <script>
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+        // Configure speech recognition
+        recognition.continuous = false;  // Stops automatically after one result
+        recognition.interimResults = true;  // Enables interim results while speaking
+        recognition.lang = 'en-US';
+
+        // When recognition starts
+        recognition.onstart = function() {
+            console.log('Speech recognition started');
+        };
+
+        // When recognition ends
+        recognition.onend = function() {
+            console.log('Speech recognition ended');
+        };
+
+        // Handle speech recognition result
+        recognition.onresult = function(event) {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+
+            // Update the input field with the recognized text
+            document.getElementById('searchInput').value = transcript;
+
+            // Automatically trigger the search button click
+            document.querySelector('button[type="submit"]').click();
+        };
+
+        // Handle errors in speech recognition
+        recognition.onerror = function(event) {
+            console.log('Speech recognition error:', event.error);
+        };
+
+        // Start speech recognition on button click
+        document.getElementById('startButton').addEventListener('click', function() {
+            // Check if recognition is already running
+            if (recognition.recognizing) {
+                console.log('Recognition is already running');
+            } else {
+                recognition.start(); // Start speech recognition
+            }
+        });
+
+        // Optional: Automatically submit when the input field is filled (if desired)
+        document.getElementById('searchInput').addEventListener('input', function() {
+            if (this.value.trim() !== '') {
+                document.querySelector('button[type="submit"]').click(); // Trigger search if input is not empty
+            }
+        });
+    </script>
+
+
     </body>
 @endsection
+
+
 </html>
