@@ -29,9 +29,9 @@
                         <div class="{{ count($signs) > 1 ? 'w-[25vw] md:w-[30vw] lg:w-[35vw]' : 'w-[50vw]' }} flex-shrink-0">
                             <!-- Displaying Sign Image or Video -->
                             @if ($sign->image_path ?? false)
-                                <img src="{{ Storage::url($sign->image_path) }}" alt="Sign Image" class="w-full h-[50vh] object-cover rounded-lg">
+                                <img src="{{ Storage::url($sign->image_path) }}" alt="Sign Image" class="w-full h-[50vh] object-contain rounded-lg">
                             @elseif ($sign->video_path ?? false)
-                                <video autoplay loop controls class="w-full h-[50vh] object-cover rounded-lg">
+                                <video autoplay loop controls class="w-full h-[50vh] object-contain rounded-lg">
                                     <source src="{{ Storage::url($sign->video_path) }}" type="video/mp4">
                                 </video>
                             @endif
