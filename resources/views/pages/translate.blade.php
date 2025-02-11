@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <!-- Importing Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Minnie+Play&family=Garet&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 
     @vite('resources/css/app.css')
 </head>
@@ -42,9 +43,6 @@
                 <p>No results found for your search.</p>
             @endif
         </div>
-
-
-
     </div>
 
     <!-- Translate Container (at the bottom of the page, centered) -->
@@ -73,7 +71,7 @@
 
                 <!-- Third Button: Sign to Text -->
                 <div class="w-[15%]">
-                    <button class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
+                    <button id="signToTextButton" class="group flex items-center justify-center space-x-2 p-2 rounded-lg bg-transparent hover:bg-[#34a5c7] hover:text-white transition-all duration-200">
                         <i class="text-[#34a5c7] group-hover:text-white fas fa-camera"></i> <!-- Camera Icon -->
                         <h3 class="font-bold">SIGN TO TEXT</h3>
                     </button>
@@ -104,71 +102,92 @@
                 </form>
             </div>
 
-
-
-
-
         </div>
     </div>
 
     <script>
-        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        // Accessing the user's camera
+        const signToTextButton = document.getElementById('signToTextButton');
+        const imageContainer = document.getElementById('image-container');
 
-        // Configure speech recognition
-        recognition.continuous = false;  // Stops automatically after one result
-        recognition.interimResults = true;  // Enables interim results while speaking
-        recognition.lang = 'en-US';
+        signToTextButton.addEventListener('click', function() {
+            // Create a new video element
+            const videoElement = document.createElement('video');
+            videoElement.setAttribute('class', 'w-full h-[50vh] object-contain rounded-lg');
+            videoElement.setAttribute('autoplay', '');
+            videoElement.setAttribute('playsinline', ''); // Required for iOS Safari
 
-        // When recognition starts
-        recognition.onstart = function() {
-            console.log('Speech recognition started');
-        };
+            // Append the video element to the container
+            imageContainer.innerHTML = '';  // Clear the current content
+            imageContainer.appendChild(videoElement);
 
-        // When recognition ends
-        recognition.onend = function() {
-            console.log('Speech recognition ended');
-        };
-
-        // Handle speech recognition result
-        recognition.onresult = function(event) {
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript;
-            }
-
-            // Update the input field with the recognized text
-            document.getElementById('searchInput').value = transcript;
-
-            // Automatically trigger the search button click
-            document.querySelector('button[type="submit"]').click();
-        };
-
-        // Handle errors in speech recognition
-        recognition.onerror = function(event) {
-            console.log('Speech recognition error:', event.error);
-        };
-
-        // Start speech recognition on button click
-        document.getElementById('startButton').addEventListener('click', function() {
-            // Check if recognition is already running
-            if (recognition.recognizing) {
-                console.log('Recognition is already running');
-            } else {
-                recognition.start(); // Start speech recognition
-            }
-        });
-
-        // Optional: Automatically submit when the input field is filled (if desired)
-        document.getElementById('searchInput').addEventListener('input', function() {
-            if (this.value.trim() !== '') {
-                document.querySelector('button[type="submit"]').click(); // Trigger search if input is not empty
-            }
+            // Access the camera
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(function(stream) {
+                    // Set the video stream to the video element
+                    videoElement.srcObject = stream;
+                })
+                .catch(function(error) {
+                    console.error('Error accessing the camera: ', error);
+                });
         });
     </script>
+    <script>
 
+let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
+// Configure speech recognition
+recognition.continuous = false;  // Stops automatically after one result
+recognition.interimResults = true;  // Enables interim results while speaking
+recognition.lang = 'en-US';
+
+// When recognition starts
+recognition.onstart = function() {
+    console.log('Speech recognition started');
+};
+
+// When recognition ends
+recognition.onend = function() {
+    console.log('Speech recognition ended');
+};
+
+// Handle speech recognition result
+recognition.onresult = function(event) {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+    }
+
+    // Update the input field with the recognized text
+    document.getElementById('searchInput').value = transcript;
+
+    // Automatically trigger the search button click
+    document.querySelector('button[type="submit"]').click();
+};
+
+// Handle errors in speech recognition
+recognition.onerror = function(event) {
+    console.log('Speech recognition error:', event.error);
+};
+
+// Start speech recognition on button click
+document.getElementById('startButton').addEventListener('click', function() {
+    // Check if recognition is already running
+    if (recognition.recognizing) {
+        console.log('Recognition is already running');
+    } else {
+        recognition.start(); // Start speech recognition
+    }
+});
+
+// Optional: Automatically submit when the input field is filled (if desired)
+document.getElementById('searchInput').addEventListener('input', function() {
+    if (this.value.trim() !== '') {
+        document.querySelector('button[type="submit"]').click(); // Trigger search if input is not empty
+    }
+});
+    </script>
     </body>
 @endsection
-
 
 </html>
