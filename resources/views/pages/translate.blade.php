@@ -134,58 +134,97 @@
     </script>
     <script>
 
-let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+document.addEventListener("DOMContentLoaded", function () {
+    let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
-// Configure speech recognition
-recognition.continuous = false;  // Stops automatically after one result
-recognition.interimResults = true;  // Enables interim results while speaking
-recognition.lang = 'en-US';
+    recognition.continuous = true;  // Keep listening indefinitely
+    recognition.interimResults = true;  // Show results while speaking
+    recognition.lang = 'en-US';
 
-// When recognition starts
-recognition.onstart = function() {
-    console.log('Speech recognition started');
-};
+    const searchInput = document.getElementById('searchInput');
+    const imageContainer = document.getElementById('image-container');
+    const startButton = document.getElementById('startButton');
 
-// When recognition ends
-recognition.onend = function() {
-    console.log('Speech recognition ended');
-};
+    let recognitionTimeout; // Store timeout reference
 
-// Handle speech recognition result
-recognition.onresult = function(event) {
-    let transcript = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
-    }
+    if (startButton) {
+        startButton.addEventListener('click', function () {
+            console.log("✅ Voice-to-Sign button clicked!");
 
-    // Update the input field with the recognized text
-    document.getElementById('searchInput').value = transcript;
-
-    // Automatically trigger the search button click
-    document.querySelector('button[type="submit"]').click();
-};
-
-// Handle errors in speech recognition
-recognition.onerror = function(event) {
-    console.log('Speech recognition error:', event.error);
-};
-
-// Start speech recognition on button click
-document.getElementById('startButton').addEventListener('click', function() {
-    // Check if recognition is already running
-    if (recognition.recognizing) {
-        console.log('Recognition is already running');
+            try {
+                recognition.start();
+                console.log("✅ Speech recognition started");
+            } catch (error) {
+                console.error("❌ Error starting speech recognition:", error);
+            }
+        });
     } else {
-        recognition.start(); // Start speech recognition
+        console.error("❌ Voice-to-Sign button not found in the DOM!");
     }
+
+    // When recognition starts: Clear input and stop after 2 seconds
+    recognition.onstart = function () {
+        searchInput.value = ''; // Clear previous text
+        console.log('🎤 Listening...');
+
+        // Stop recognition after 2 seconds
+        recognitionTimeout = setTimeout(() => {
+            recognition.stop();
+            console.log("🛑 Stopping speech recognition after 2 seconds...");
+        }, 2000);
+    };
+
+    // Handle speech recognition results
+    recognition.onresult = function (event) {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript; // Get recognized words
+        }
+
+        // Update input field
+        searchInput.value = transcript;
+
+        // Perform search dynamically
+        fetchSearchResults(transcript);
+    };
+
+    // Function to fetch search results (Fix Duplicate UI Issue)
+    function fetchSearchResults(query) {
+        if (!query.trim()) return;
+
+        fetch(`/translate?inputText=${encodeURIComponent(query)}`)
+            .then(response => response.text())
+            .then(data => {
+                // Extract only the results part (Avoid replacing full page content)
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data, "text/html");
+                const newResults = doc.getElementById("image-container");
+
+                if (newResults) {
+                    imageContainer.innerHTML = newResults.innerHTML; // Update only the results, not the full page
+                }
+            })
+            .catch(error => console.error("❌ Error fetching search results:", error));
+    }
+
+    // Handle recognition errors
+    recognition.onerror = function (event) {
+        console.error("❌ Speech recognition error:", event.error);
+    };
+
+    // Restart recognition after 5 seconds
+    recognition.onend = function () {
+        console.log("🔄 Recognition ended. Restarting in 5 seconds...");
+
+        clearTimeout(recognitionTimeout); // Clear any previous timeout
+
+        setTimeout(() => {
+            recognition.start();
+            console.log("✅ Restarting speech recognition after 5 seconds...");
+        }, 2000);
+    };
 });
 
-// Optional: Automatically submit when the input field is filled (if desired)
-document.getElementById('searchInput').addEventListener('input', function() {
-    if (this.value.trim() !== '') {
-        document.querySelector('button[type="submit"]').click(); // Trigger search if input is not empty
-    }
-});
     </script>
     </body>
 @endsection
