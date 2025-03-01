@@ -67,13 +67,13 @@
 
             <!-- Search Bar -->
             <div class="w-full">
-                <form action="{{ route('translate') }}" method="GET" class="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-2">
+                <form id="translateForm" class="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-2">
                     <input type="text" id="searchInput" name="inputText"
                         placeholder="SEARCH FILIPINO SIGN LANGUAGE"
                         value="{{ old('inputText') }}"
                         class="w-full p-2 md:p-3 bg-[#e1e1e1] rounded-lg border-none focus:ring-2 focus:ring-[#34a5c7]">
 
-                    <button type="submit" class="p-3 md:p-5 bg-[#34a5c7] text-white rounded-lg w-full md:w-auto">
+                    <button type="submit" id="translateButton" class="p-3 md:p-5 bg-[#34a5c7] text-white rounded-lg w-full md:w-auto">
                         <i class="text-white fas fa-search"></i>
                     </button>
                 </form>
@@ -202,6 +202,36 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 });
 
+    </script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const translateForm = document.getElementById("translateForm");
+        const searchInput = document.getElementById("searchInput");
+        const imageContainer = document.getElementById("image-container");
+
+        translateForm.addEventListener("submit", function (event) {
+            event.preventDefault(); // Prevent the form from submitting normally
+
+            const query = searchInput.value.trim();
+            if (!query) return; // Stop if the input is empty
+
+            fetch(`/translate?inputText=${encodeURIComponent(query)}`)
+                .then(response => response.text())
+                .then(data => {
+                    // Extract only the relevant part of the response
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data, "text/html");
+                    const newResults = doc.getElementById("image-container");
+
+                    if (newResults) {
+                        imageContainer.innerHTML = newResults.innerHTML; // Update only the results
+                    }
+                })
+                .catch(error => console.error("❌ Error fetching search results:", error));
+        });
+    });
     </script>
     </body>
 @endsection
