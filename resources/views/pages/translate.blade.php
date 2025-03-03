@@ -8,7 +8,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <!-- Importing Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Minnie+Play&family=Garet&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+
 
     @vite('resources/css/app.css')
 </head>
@@ -37,6 +40,9 @@
             @else
                 <p class="text-center text-gray-600">No results found for your search.</p>
             @endif
+        </div>
+        <div id="gestureOutput" class="text-center text-lg font-bold mt-4 text-[#34a5c7]">
+            No hand detected
         </div>
     </div>
 
@@ -82,33 +88,113 @@
         </div>
     </div>
 
-    <script>
-        // Accessing the user's camera
-        const signToTextButton = document.getElementById('signToTextButton');
-        const imageContainer = document.getElementById('image-container');
+    {{-- For Sign-to-Text --}}
 
-        signToTextButton.addEventListener('click', function() {
-            // Create a new video element
-            const videoElement = document.createElement('video');
-            videoElement.setAttribute('class', 'w-full h-[50vh] object-contain rounded-lg');
-            videoElement.setAttribute('autoplay', '');
-            videoElement.setAttribute('playsinline', ''); // Required for iOS Safari
+    <!-- Add MediaPipe Library -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const signToTextButton = document.getElementById("signToTextButton");
+        const imageContainer = document.getElementById("image-container");
 
-            // Append the video element to the container
-            imageContainer.innerHTML = '';  // Clear the current content
+        let videoElement;
+        let handDetector;
+        let lastGesture = "";
+
+        async function setupCamera() {
+            videoElement = document.createElement("video");
+            videoElement.setAttribute("autoplay", "");
+            videoElement.setAttribute("playsinline", "");
+            videoElement.classList.add("w-full", "h-[50vh]", "object-contain", "rounded-lg");
+
+            imageContainer.innerHTML = "";
             imageContainer.appendChild(videoElement);
 
-            // Access the camera
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    // Set the video stream to the video element
-                    videoElement.srcObject = stream;
-                })
-                .catch(function(error) {
-                    console.error('Error accessing the camera: ', error);
-                });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            videoElement.srcObject = stream;
+        }
+
+        async function loadHandTracking() {
+            handDetector = new Hands({
+                locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+
+            handDetector.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            handDetector.onResults(processResults);
+
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await handDetector.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+
+            camera.start();
+        }
+
+        function processResults(results) {
+    const gestureOutput = document.getElementById("gestureOutput");
+
+    if (!gestureOutput) {
+        console.error("❌ gestureOutput element not found!");
+        return;
+    }
+
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+        lastGesture = "";
+        gestureOutput.textContent = "No hand detected";
+        return;
+    }
+
+    const landmarks = results.multiHandLandmarks[0];
+
+    // Thumb and Index Finger Position
+    const thumb = landmarks[4];
+    const index = landmarks[8];
+
+    let gesture = "";
+
+    if (index.y < thumb.y) {
+        gesture = "👍 Thumbs Up";
+    } else if (index.y > thumb.y) {
+        gesture = "🖐 Open Palm";
+    } else if (Math.abs(index.x - thumb.x) < 0.1) {
+        gesture = "👊 Fist";
+    }
+
+    let xMovement = index.x - thumb.x;
+    if (xMovement > 0.2) {
+        gesture = "→ Swiping Right";
+    } else if (xMovement < -0.2) {
+        gesture = "← Swiping Left";
+    }
+
+    if (gesture && lastGesture !== gesture) {
+        console.log("Detected Gesture:", gesture);
+        gestureOutput.textContent = "Detected: " + gesture; // ✅ Now it will update safely
+        lastGesture = gesture;
+    }
+}
+
+
+        signToTextButton.addEventListener("click", async function () {
+            await setupCamera();
+            await loadHandTracking();
         });
-    </script>
+    });
+</script>
+
+{{-- // For Voice-to-Sign --}}
     <script>
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -144,26 +230,19 @@ document.addEventListener("DOMContentLoaded", function () {
         searchInput.value = ''; // Clear previous text
         console.log('🎤 Listening...');
 
-        // Stop recognition after 2 seconds
-        recognitionTimeout = setTimeout(() => {
-            recognition.stop();
-            console.log("🛑 Stopping speech recognition after 2 seconds...");
-        }, 2000);
+
     };
 
     // Handle speech recognition results
     recognition.onresult = function (event) {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript; // Get recognized words
-        }
+    let transcript = searchInput.value; // Preserve existing input
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript; // Append new words
+    }
+    searchInput.value = transcript;
+    fetchSearchResults(transcript);
+};
 
-        // Update input field
-        searchInput.value = transcript;
-
-        // Perform search dynamically
-        fetchSearchResults(transcript);
-    };
 
     // Function to fetch search results (Fix Duplicate UI Issue)
     function fetchSearchResults(query) {
@@ -186,24 +265,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Handle recognition errors
     recognition.onerror = function (event) {
-        console.error("❌ Speech recognition error:", event.error);
-    };
+    console.error("❌ Speech recognition error:", event.error, event);
+};
 
-    // Restart recognition after 5 seconds
-    recognition.onend = function () {
-        console.log("🔄 Recognition ended. Restarting in 5 seconds...");
 
-        clearTimeout(recognitionTimeout); // Clear any previous timeout
-
-        setTimeout(() => {
-            recognition.start();
-            console.log("✅ Restarting speech recognition after 5 seconds...");
-        }, 2000);
-    };
 });
 
     </script>
 
+{{-- // For Text-to-Sign --}}
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
