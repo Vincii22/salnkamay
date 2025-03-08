@@ -15,6 +15,13 @@
 
     @vite('resources/css/app.css')
 </head>
+<style>
+    .sign-to-text-video {
+        transform: scaleX(-1); /* Flips the camera horizontally */
+        -webkit-transform: scaleX(-1); /* Ensures compatibility with older browsers */
+        transform-origin: center; /* Keeps the video centered */
+    }
+</style>
 
 @extends('layouts.app')
 
@@ -41,11 +48,11 @@
                 <p class="text-center text-gray-600">No results found for your search.</p>
             @endif
         </div>
-        <div id="gestureOutput" class="text-center text-lg font-bold mt-4 text-[#34a5c7]">
-            No hand detected
-        </div>
-    </div>
 
+    </div>
+    <div id="gestureOutput" class="text-center text-lg font-bold mt-4 text-[#34a5c7]">
+        No hand detected
+    </div>
     <!-- Translate Container (Mobile Optimized) -->
     <div class="flex justify-center w-full px-4">
         <div class="bg-[#f5f5f5] w-full sm:w-[90%] md:w-[75%] lg:w-[50%] rounded-lg p-4 md:p-6">
@@ -132,6 +139,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function setupCamera() {
         videoElement = document.createElement("video");
+        videoElement.classList.add("sign-to-text-video");
         videoElement.setAttribute("autoplay", "");
         videoElement.setAttribute("playsinline", "");
         videoElement.classList.add("w-full", "h-[50vh]", "object-contain", "rounded-lg");
@@ -255,83 +263,100 @@ document.addEventListener("DOMContentLoaded", async function () {
 </script>
 
 {{-- // For Voice-to-Sign --}}
-    <script>
+<script>
 
-document.addEventListener("DOMContentLoaded", function () {
-    let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    document.addEventListener("DOMContentLoaded", function () {
+        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 
-    recognition.continuous = true;  // Keep listening indefinitely
-    recognition.interimResults = true;  // Show results while speaking
-    recognition.lang = 'en-US';
+        recognition.continuous = true;  // Keep listening indefinitely
+        recognition.interimResults = true;  // Show results while speaking
+        recognition.lang = 'en-US';
 
-    const searchInput = document.getElementById('searchInput');
-    const imageContainer = document.getElementById('image-container');
-    const startButton = document.getElementById('startButton');
+        const searchInput = document.getElementById('searchInput');
+        const imageContainer = document.getElementById('image-container');
+        const startButton = document.getElementById('startButton');
 
-    let recognitionTimeout; // Store timeout reference
+        let recognitionTimeout; // Store timeout reference
 
-    if (startButton) {
-        startButton.addEventListener('click', function () {
-            console.log("✅ Voice-to-Sign button clicked!");
+        if (startButton) {
+            startButton.addEventListener('click', function () {
+                console.log("✅ Voice-to-Sign button clicked!");
 
-            try {
-                recognition.start();
-                console.log("✅ Speech recognition started");
-            } catch (error) {
-                console.error("❌ Error starting speech recognition:", error);
-            }
-        });
-    } else {
-        console.error("❌ Voice-to-Sign button not found in the DOM!");
-    }
-
-    // When recognition starts: Clear input and stop after 2 seconds
-    recognition.onstart = function () {
-        searchInput.value = ''; // Clear previous text
-        console.log('🎤 Listening...');
-
-
-    };
-
-    // Handle speech recognition results
-    recognition.onresult = function (event) {
-    let transcript = searchInput.value; // Preserve existing input
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript; // Append new words
-    }
-    searchInput.value = transcript;
-    fetchSearchResults(transcript);
-};
-
-
-    // Function to fetch search results (Fix Duplicate UI Issue)
-    function fetchSearchResults(query) {
-        if (!query.trim()) return;
-
-        fetch(`/translate?inputText=${encodeURIComponent(query)}`)
-            .then(response => response.text())
-            .then(data => {
-                // Extract only the results part (Avoid replacing full page content)
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data, "text/html");
-                const newResults = doc.getElementById("image-container");
-
-                if (newResults) {
-                    imageContainer.innerHTML = newResults.innerHTML; // Update only the results, not the full page
+                try {
+                    recognition.start();
+                    console.log("✅ Speech recognition started");
+                } catch (error) {
+                    console.error("❌ Error starting speech recognition:", error);
                 }
-            })
-            .catch(error => console.error("❌ Error fetching search results:", error));
-    }
+            });
+        } else {
+            console.error("❌ Voice-to-Sign button not found in the DOM!");
+        }
 
-    // Handle recognition errors
-    recognition.onerror = function (event) {
-    console.error("❌ Speech recognition error:", event.error, event);
-};
+        // When recognition starts: Clear input and stop after 2 seconds
+        recognition.onstart = function () {
+            searchInput.value = ''; // Clear previous text
+            console.log('🎤 Listening...');
 
+            // Stop recognition after 2 seconds
+            recognitionTimeout = setTimeout(() => {
+                recognition.stop();
+                console.log("🛑 Stopping speech recognition after 2 seconds...");
+            }, 2000);
+        };
 
-});
+        // Handle speech recognition results
+        recognition.onresult = function (event) {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript; // Get recognized words
+            }
 
-    </script>
+            // Update input field
+            searchInput.value = transcript;
+
+            // Perform search dynamically
+            fetchSearchResults(transcript);
+        };
+
+        // Function to fetch search results (Fix Duplicate UI Issue)
+        function fetchSearchResults(query) {
+            if (!query.trim()) return;
+
+            fetch(`/translate?inputText=${encodeURIComponent(query)}`)
+                .then(response => response.text())
+                .then(data => {
+                    // Extract only the results part (Avoid replacing full page content)
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(data, "text/html");
+                    const newResults = doc.getElementById("image-container");
+
+                    if (newResults) {
+                        imageContainer.innerHTML = newResults.innerHTML; // Update only the results, not the full page
+                    }
+                })
+                .catch(error => console.error("❌ Error fetching search results:", error));
+        }
+
+        // Handle recognition errors
+        recognition.onerror = function (event) {
+            console.error("❌ Speech recognition error:", event.error);
+        };
+
+        // Restart recognition after 5 seconds
+        recognition.onend = function () {
+            console.log("🔄 Recognition ended. Restarting in 5 seconds...");
+
+            clearTimeout(recognitionTimeout); // Clear any previous timeout
+
+            setTimeout(() => {
+                recognition.start();
+                console.log("✅ Restarting speech recognition after 5 seconds...");
+            }, 2000);
+        };
+    });
+
+        </script>
 
 {{-- // For Text-to-Sign --}}
 
