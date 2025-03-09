@@ -12,6 +12,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 
+    <script src="{{ asset('js/textToSign.js') }}"></script>
+    <script src="{{ asset('js/voiceToSign.js') }}"></script>
+    <script src="{{ asset('js/signToText.js') }}"></script>
 
     @vite('resources/css/app.css')
 </head>
@@ -50,6 +53,7 @@
         </div>
 
     </div>
+
     <div id="gestureOutput" class="text-center text-lg font-bold mt-4 text-[#34a5c7]">
         No hand detected
     </div>
@@ -95,299 +99,14 @@
         </div>
     </div>
 
-    {{-- For Sign-to-Text --}}
+
 
     <!-- Add MediaPipe Library -->
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
-<script>
-document.addEventListener("DOMContentLoaded", async function () {
-    const signToTextButton = document.getElementById("signToTextButton");
-    const imageContainer = document.getElementById("image-container");
-    const gestureOutput = document.getElementById("gestureOutput");
 
-    let videoElement;
-    let handDetector;
-    let lastDetectedGesture = "";
-    let handLandmarksDataset = {};
-    let handLandmarksNumbersDataset = {};
-    let detectionStability = {}; // Tracks gesture stability
-    const STABILITY_THRESHOLD = 3;
-    const MATCH_THRESHOLD = 0.15;
-
-    // Load both datasets (Foods + Numbers)
-    async function loadLandmarksDataset() {
-        try {
-            const [foodsResponse, numbersResponse] = await Promise.all([
-                fetch("/hand_landmarks.json"),         // Foods
-                fetch("/hand_landmarks_numbers.json")  // Numbers
-            ]);
-
-            handLandmarksDataset = await foodsResponse.json();
-            handLandmarksNumbersDataset = await numbersResponse.json();
-
-            console.log("✅ Landmark datasets loaded", {
-                Foods: handLandmarksDataset,
-                Numbers: handLandmarksNumbersDataset
-            });
-        } catch (error) {
-            console.error("❌ Error loading landmark datasets:", error);
-        }
-    }
-
-    async function setupCamera() {
-        videoElement = document.createElement("video");
-        videoElement.classList.add("sign-to-text-video");
-        videoElement.setAttribute("autoplay", "");
-        videoElement.setAttribute("playsinline", "");
-        videoElement.classList.add("w-full", "h-[50vh]", "object-contain", "rounded-lg");
-
-        imageContainer.innerHTML = "";
-        imageContainer.appendChild(videoElement);
-
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoElement.srcObject = stream;
-    }
-
-    async function loadHandTracking() {
-        handDetector = new Hands({
-            locateFile: file => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-        });
-
-        handDetector.setOptions({
-            maxNumHands: 1,
-            modelComplexity: 1,
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
-
-        handDetector.onResults(processResults);
-
-        const camera = new Camera(videoElement, {
-            onFrame: async () => {
-                await handDetector.send({ image: videoElement });
-            },
-            width: 640,
-            height: 480
-        });
-
-        camera.start();
-    }
-
-    function processResults(results) {
-        if (!gestureOutput) {
-            console.error("❌ gestureOutput element not found!");
-            return;
-        }
-
-        if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-            lastDetectedGesture = "";
-            gestureOutput.textContent = "No hand detected";
-            return;
-        }
-
-        const detectedLandmarks = normalizeLandmarks(results.multiHandLandmarks[0]);
-
-        // Compare with both datasets and find the closest match
-        const detectedFoodGesture = matchHandGesture(detectedLandmarks, handLandmarksDataset);
-        const detectedNumberGesture = matchHandGesture(detectedLandmarks, handLandmarksNumbersDataset);
-
-        let bestMatch;
-        if (detectedFoodGesture.match !== "Unknown Gesture") {
-            bestMatch = `[Food] ${detectedFoodGesture.match}`;
-        } else if (detectedNumberGesture.match !== "Unknown Gesture") {
-            bestMatch = `[Number] ${detectedNumberGesture.match}`;
-        } else {
-            bestMatch = "Unknown Gesture";
-        }
-
-        // Stability check: Require multiple frames before confirming
-        if (bestMatch === lastDetectedGesture) {
-            detectionStability[bestMatch] = (detectionStability[bestMatch] || 0) + 1;
-        } else {
-            detectionStability[bestMatch] = 1;
-        }
-
-        if (detectionStability[bestMatch] >= STABILITY_THRESHOLD) {
-            console.log("Detected Gesture:", bestMatch);
-            gestureOutput.textContent = "Detected: " + bestMatch;
-            lastDetectedGesture = bestMatch;
-        }
-    }
-
-    function normalizeLandmarks(landmarks) {
-        const base = landmarks[0]; // Wrist (index 0)
-        return landmarks.map(lm => [lm.x - base.x, lm.y - base.y, lm.z - base.z]);
-    }
-
-    function matchHandGesture(currentHand, dataset) {
-        let bestMatch = "Unknown Gesture";
-        let minDistance = Infinity;
-
-        for (const [word, gestures] of Object.entries(dataset)) {
-            for (const storedGesture of gestures) {
-                const distance = calculateDistance(currentHand, storedGesture);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    bestMatch = word;
-                }
-            }
-        }
-
-        console.log(`Best match: ${bestMatch} (Distance: ${minDistance.toFixed(4)})`);
-
-        return minDistance < MATCH_THRESHOLD
-            ? { match: bestMatch, distance: minDistance }
-            : { match: "Unknown Gesture", distance: minDistance };
-    }
-
-    function calculateDistance(hand1, hand2) {
-        let sum = 0;
-        for (let i = 0; i < hand1.length; i++) {
-            const dx = hand1[i][0] - hand2[i][0];
-            const dy = hand1[i][1] - hand2[i][1];
-            const dz = hand1[i][2] - hand2[i][2];
-            sum += dx * dx + dy * dy + dz * dz;
-        }
-        return Math.sqrt(sum / hand1.length);
-    }
-
-    signToTextButton.addEventListener("click", async function () {
-        await loadLandmarksDataset();
-        await setupCamera();
-        await loadHandTracking();
-    });
-});
-</script>
-
-{{-- // For Voice-to-Sign --}}
-<script>
-
-    document.addEventListener("DOMContentLoaded", function () {
-        let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-
-        recognition.continuous = true;  // Keep listening indefinitely
-        recognition.interimResults = true;  // Show results while speaking
-        recognition.lang = 'en-US';
-
-        const searchInput = document.getElementById('searchInput');
-        const imageContainer = document.getElementById('image-container');
-        const startButton = document.getElementById('startButton');
-
-        let recognitionTimeout; // Store timeout reference
-
-        if (startButton) {
-            startButton.addEventListener('click', function () {
-                console.log("✅ Voice-to-Sign button clicked!");
-
-                try {
-                    recognition.start();
-                    console.log("✅ Speech recognition started");
-                } catch (error) {
-                    console.error("❌ Error starting speech recognition:", error);
-                }
-            });
-        } else {
-            console.error("❌ Voice-to-Sign button not found in the DOM!");
-        }
-
-        // When recognition starts: Clear input and stop after 2 seconds
-        recognition.onstart = function () {
-            searchInput.value = ''; // Clear previous text
-            console.log('🎤 Listening...');
-
-            // Stop recognition after 2 seconds
-            recognitionTimeout = setTimeout(() => {
-                recognition.stop();
-                console.log("🛑 Stopping speech recognition after 2 seconds...");
-            }, 2000);
-        };
-
-        // Handle speech recognition results
-        recognition.onresult = function (event) {
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                transcript += event.results[i][0].transcript; // Get recognized words
-            }
-
-            // Update input field
-            searchInput.value = transcript;
-
-            // Perform search dynamically
-            fetchSearchResults(transcript);
-        };
-
-        // Function to fetch search results (Fix Duplicate UI Issue)
-        function fetchSearchResults(query) {
-            if (!query.trim()) return;
-
-            fetch(`/translate?inputText=${encodeURIComponent(query)}`)
-                .then(response => response.text())
-                .then(data => {
-                    // Extract only the results part (Avoid replacing full page content)
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(data, "text/html");
-                    const newResults = doc.getElementById("image-container");
-
-                    if (newResults) {
-                        imageContainer.innerHTML = newResults.innerHTML; // Update only the results, not the full page
-                    }
-                })
-                .catch(error => console.error("❌ Error fetching search results:", error));
-        }
-
-        // Handle recognition errors
-        recognition.onerror = function (event) {
-            console.error("❌ Speech recognition error:", event.error);
-        };
-
-        // Restart recognition after 5 seconds
-        recognition.onend = function () {
-            console.log("🔄 Recognition ended. Restarting in 5 seconds...");
-
-            clearTimeout(recognitionTimeout); // Clear any previous timeout
-
-            setTimeout(() => {
-                recognition.start();
-                console.log("✅ Restarting speech recognition after 5 seconds...");
-            }, 2000);
-        };
-    });
-
-        </script>
-
-{{-- // For Text-to-Sign --}}
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const translateForm = document.getElementById("translateForm");
-        const searchInput = document.getElementById("searchInput");
-        const imageContainer = document.getElementById("image-container");
-
-        translateForm.addEventListener("submit", function (event) {
-            event.preventDefault(); // Prevent the form from submitting normally
-
-            const query = searchInput.value.trim();
-            if (!query) return; // Stop if the input is empty
-
-            fetch(`/translate?inputText=${encodeURIComponent(query)}`)
-                .then(response => response.text())
-                .then(data => {
-                    // Extract only the relevant part of the response
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(data, "text/html");
-                    const newResults = doc.getElementById("image-container");
-
-                    if (newResults) {
-                        imageContainer.innerHTML = newResults.innerHTML; // Update only the results
-                    }
-                })
-                .catch(error => console.error("❌ Error fetching search results:", error));
-        });
-    });
-    </script>
     </body>
 @endsection
 
