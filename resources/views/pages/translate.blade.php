@@ -54,9 +54,11 @@
 
     </div>
 
-    <div id="gestureOutput" class="text-center text-lg font-bold mt-4 text-[#34a5c7]">
+
+    <div id="gestureOutput" class="hidden text-center text-lg font-bold mt-4 text-[#34a5c7]">
         No hand detected
     </div>
+
     <!-- Translate Container (Mobile Optimized) -->
     <div class="flex justify-center w-full px-4">
         <div class="bg-[#f5f5f5] w-full sm:w-[90%] md:w-[75%] lg:w-[50%] rounded-lg p-4 md:p-6">

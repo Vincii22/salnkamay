@@ -1,44 +1,51 @@
 document.addEventListener("DOMContentLoaded", async function () {
     const signToTextButton = document.getElementById("signToTextButton");
-    const stopCameraButton = document.createElement("button"); // Stop Camera Button
+    const btnStopCamera = document.createElement("button");
     const imageContainer = document.getElementById("image-container");
     const gestureOutput = document.getElementById("gestureOutput");
 
     let videoElement;
     let handDetector;
-    let lastDetectedGesture = "";
-    let handLandmarksDataset = {};
-    let handLandmarksNumbersDataset = {};
+    let previousGesture = "";
+    let gestureDatasets = {};
     let detectionStability = {};
-    let isCameraActive = false; // Track camera state
-    const STABILITY_THRESHOLD = 3;
-    const MATCH_THRESHOLD = 0.15;
+    let isCameraActive = false;
 
-    // Stop Camera Button Setup
-    stopCameraButton.textContent = "Stop Camera";
-    stopCameraButton.classList.add("bg-red-500", "text-white", "px-4", "py-2", "rounded", "mt-4", "hidden");
-    imageContainer.appendChild(stopCameraButton);
+    const MATCH_THRESHOLD = 0.35;
+    const DISPLAY_DELAY = 1000;
+    let debounceTimer = null;
+
+    btnStopCamera.textContent = "Stop Camera";
+    btnStopCamera.classList.add("bg-red-500", "text-white", "px-4", "py-2", "rounded", "mt-4", "hidden");
+    imageContainer.appendChild(btnStopCamera);
 
     async function loadLandmarksDataset() {
         try {
-            const [foodsResponse, numbersResponse] = await Promise.all([
+            const [foods, numbers, alphabets] = await Promise.all([
                 fetch("/hand_landmarks.json"),
-                fetch("/hand_landmarks_numbers.json")
+                fetch("/hand_landmarks_numbers.json"),
+                fetch("/hand_landmarks_alphabets.json")
             ]);
 
-            handLandmarksDataset = await foodsResponse.json();
-            handLandmarksNumbersDataset = await numbersResponse.json();
+            gestureDatasets = {
+                food: await foods.json(),
+                numbers: await numbers.json(),
+                alphabets: await alphabets.json()
+            };
 
-            console.log("✅ Landmark datasets loaded", {
-                Foods: handLandmarksDataset,
-                Numbers: handLandmarksNumbersDataset
-            });
+            console.log("✅ Landmark datasets loaded:", gestureDatasets); // <-- Add this to confirm dataset structure
         } catch (error) {
             console.error("❌ Error loading landmark datasets:", error);
         }
     }
 
-    async function setupCamera() {
+
+    function showMessage(message) {
+        gestureOutput.textContent = message;
+        gestureOutput.classList.remove("hidden");
+    }
+
+    async function initializeCamera() {
         videoElement = document.createElement("video");
         videoElement.classList.add("sign-to-text-video", "w-full", "h-[50vh]", "object-contain", "rounded-lg");
         videoElement.setAttribute("autoplay", "");
@@ -46,13 +53,46 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         imageContainer.innerHTML = "";
         imageContainer.appendChild(videoElement);
-        imageContainer.appendChild(stopCameraButton); // Show Stop Button
-        stopCameraButton.classList.remove("hidden");
+        imageContainer.appendChild(btnStopCamera);
+        btnStopCamera.classList.remove("hidden");
 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoElement.srcObject = stream;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user", width: 640, height: 480 }
+            });
+            videoElement.srcObject = stream;
 
-        isCameraActive = true; // Mark camera as active
+            // Confirm video feed is live
+            videoElement.onloadedmetadata = () => {
+                console.log("📹 Video feed is active and streaming.");
+            };
+
+        } catch (error) {
+            console.error("🚨 Camera error:", error.message);
+            showMessage("❌ Camera error: Please check your permissions.");
+            return;
+        }
+
+        isCameraActive = true;
+        showMessage("No hand detected");
+    }
+
+    function stopCamera() {
+        if (isCameraActive && videoElement) {
+            const stream = videoElement.srcObject;
+            if (stream) {
+                const tracks = stream.getTracks();
+                tracks.forEach(track => track.stop());
+            }
+
+            videoElement.srcObject = null;
+            videoElement.remove();
+            console.log("🛑 Camera for Sign-to-Text stopped");
+
+            btnStopCamera.classList.add("hidden");
+            gestureOutput.classList.add("hidden");
+            isCameraActive = false;
+        }
     }
 
     async function loadHandTracking() {
@@ -63,15 +103,23 @@ document.addEventListener("DOMContentLoaded", async function () {
         handDetector.setOptions({
             maxNumHands: 1,
             modelComplexity: 1,
-            minDetectionConfidence: 0.5,
+            minDetectionConfidence: 0.6,
             minTrackingConfidence: 0.5
         });
 
         handDetector.onResults(processResults);
 
+        const FRAME_INTERVAL = 300; // Delay in milliseconds (e.g., 300ms = ~3 FPS)
+        let lastFrameTime = 0;
+
         const camera = new Camera(videoElement, {
             onFrame: async () => {
-                await handDetector.send({ image: videoElement });
+                const now = performance.now();
+
+                if (now - lastFrameTime >= FRAME_INTERVAL) {
+                    await handDetector.send({ image: videoElement });
+                    lastFrameTime = now;
+                }
             },
             width: 640,
             height: 480
@@ -80,66 +128,69 @@ document.addEventListener("DOMContentLoaded", async function () {
         camera.start();
     }
 
-    function stopCamera() {
-        if (isCameraActive && videoElement) {
-            const stream = videoElement.srcObject;
-            if (stream) {
-                const tracks = stream.getTracks();
-                tracks.forEach(track => track.stop()); // Stop camera tracks
-            }
 
-            videoElement.srcObject = null;
-            videoElement.remove();
-            console.log("🛑 Camera for Sign-to-Text stopped");
-
-            stopCameraButton.classList.add("hidden"); // Hide Stop Button
-            isCameraActive = false;
-        }
-    }
+    let stableFrameCount = 0;
+    const STABILITY_THRESHOLD = 5; // Minimum number of stable frames required
 
     function processResults(results) {
-        if (!gestureOutput) {
-            console.error("❌ gestureOutput element not found!");
-            return;
-        }
-
-        if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
-            lastDetectedGesture = "";
-            gestureOutput.textContent = "No hand detected";
-            return;
-        }
-
-        const detectedLandmarks = normalizeLandmarks(results.multiHandLandmarks[0]);
-
-        const detectedFoodGesture = matchHandGesture(detectedLandmarks, handLandmarksDataset);
-        const detectedNumberGesture = matchHandGesture(detectedLandmarks, handLandmarksNumbersDataset);
-
-        let bestMatch;
-        if (detectedFoodGesture.match !== "Unknown Gesture") {
-            bestMatch = `[Food] ${detectedFoodGesture.match}`;
-        } else if (detectedNumberGesture.match !== "Unknown Gesture") {
-            bestMatch = `[Number] ${detectedNumberGesture.match}`;
+        if (results.multiHandLandmarks.length) {
+            stableFrameCount++;
+            console.log("🔎 Detected Landmarks:", normalizeLandmarks(results.multiHandLandmarks[0])); // <-- Add this
         } else {
-            bestMatch = "Unknown Gesture";
+            stableFrameCount = 0; // Reset counter on instability
         }
 
-        if (bestMatch === lastDetectedGesture) {
-            detectionStability[bestMatch] = (detectionStability[bestMatch] || 0) + 1;
+        if (stableFrameCount >= STABILITY_THRESHOLD) {
+            console.log("✅ Stable Movement - Processing Frame");
+
+            const detectedLandmarks = normalizeLandmarks(results.multiHandLandmarks[0]);
+            const bestMatch = findBestMatch(detectedLandmarks);
+
+            console.log(`🧩 Best Match: ${bestMatch.match} (Distance: ${bestMatch.distance})`);
+
+            if (bestMatch.match !== "Unknown Gesture") {
+                showMessage(`🖐️ Detected: ${bestMatch.match}`);
+            } else {
+                showMessage("❓ No match found");
+            }
+
         } else {
-            detectionStability[bestMatch] = 1;
-        }
-
-        if (detectionStability[bestMatch] >= STABILITY_THRESHOLD) {
-            console.log("Detected Gesture:", bestMatch);
-            gestureOutput.textContent = "Detected: " + bestMatch;
-            lastDetectedGesture = bestMatch;
+            console.warn("⚠️ Unstable Movement - Skipping Frame");
         }
     }
+
+
+    function findBestMatch(detectedLandmarks) {
+        const matches = [
+            matchHandGesture(detectedLandmarks, gestureDatasets.food),
+            matchHandGesture(detectedLandmarks, gestureDatasets.numbers),
+            matchHandGesture(detectedLandmarks, gestureDatasets.alphabets)
+        ];
+
+        const bestMatch = matches
+            .filter(m => m.match !== "Unknown Gesture" && m.distance < MATCH_THRESHOLD)
+            .sort((a, b) => a.distance - b.distance)[0] || { match: "Unknown Gesture" };
+
+        if (bestMatch.match === "Unknown Gesture") {
+            console.warn("🚨 No valid gesture detected");
+        }
+
+        return bestMatch;
+    }
+
 
     function normalizeLandmarks(landmarks) {
-        const base = landmarks[0];
-        return landmarks.map(lm => [lm.x - base.x, lm.y - base.y, lm.z - base.z]);
+        const normalized = landmarks.map((point) => ({
+            x: point.x * videoElement.videoWidth,
+            y: point.y * videoElement.videoHeight,
+            z: point.z || 0 // <-- Ensure z-value exists
+        }));
+
+        console.log("🔎 Normalized Landmarks:", normalized); // <-- Add this
+        return normalized;
     }
+
+
 
     function matchHandGesture(currentHand, dataset) {
         let bestMatch = "Unknown Gesture";
@@ -148,6 +199,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         for (const [word, gestures] of Object.entries(dataset)) {
             for (const storedGesture of gestures) {
                 const distance = calculateDistance(currentHand, storedGesture);
+                console.log(`🔍 Comparing ${word}: Distance = ${distance}`);
+
                 if (distance < minDistance) {
                     minDistance = distance;
                     bestMatch = word;
@@ -155,29 +208,44 @@ document.addEventListener("DOMContentLoaded", async function () {
             }
         }
 
-        console.log(`Best match: ${bestMatch} (Distance: ${minDistance.toFixed(4)})`);
-
-        return minDistance < MATCH_THRESHOLD
-            ? { match: bestMatch, distance: minDistance }
-            : { match: "Unknown Gesture", distance: minDistance };
+        console.log(`✅ Best Match: ${bestMatch} (Distance: ${minDistance})`);
+        return { match: bestMatch, distance: minDistance };
     }
+
 
     function calculateDistance(hand1, hand2) {
-        let sum = 0;
-        for (let i = 0; i < hand1.length; i++) {
-            const dx = hand1[i][0] - hand2[i][0];
-            const dy = hand1[i][1] - hand2[i][1];
-            const dz = hand1[i][2] - hand2[i][2];
-            sum += dx * dx + dy * dy + dz * dz;
+        if (!hand1 || !hand2 || hand1.length !== hand2.length) {
+            console.warn("⚠️ Invalid landmarks data for distance calculation");
+            return Infinity;  // Prevents `NaN` errors
         }
-        return Math.sqrt(sum / hand1.length);
+
+        let totalDistance = 0;
+        for (let i = 0; i < hand1.length; i++) {
+            const p1 = hand1[i];
+            const p2 = hand2[i];
+
+            // Ensure points are valid
+            if (!p1 || !p2 || typeof p1.x !== 'number' || typeof p2.x !== 'number') {
+                console.warn(`⚠️ Invalid point at index ${i}`);
+                return Infinity;  // Prevents `NaN` propagation
+            }
+
+            totalDistance += (
+                (p1.x - p2.x) ** 2 +
+                (p1.y - p2.y) ** 2 +
+                (p1.z - p2.z) ** 2
+            );
+        }
+
+        return Math.sqrt(totalDistance / hand1.length); // Averaged distance for stability
     }
+
 
     signToTextButton.addEventListener("click", async function () {
         await loadLandmarksDataset();
-        await setupCamera();
+        await initializeCamera();
         await loadHandTracking();
     });
 
-    stopCameraButton.addEventListener("click", stopCamera); // Stop button action
+    btnStopCamera.addEventListener("click", stopCamera);
 });

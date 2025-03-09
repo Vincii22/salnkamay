@@ -2,7 +2,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 
-<nav class="flex justify-between items-center p-4 bg-[rgba(255,255,255,0.6)] text-black border-b-1 border-gray-700 rounded-bl-3xl rounded-br-3xl">
+<nav class="fixed top-0 w-full z-10 flex justify-between items-center p-4 bg-[rgba(255,255,255,0.6)] text-black border-b border-gray-700 rounded-bl-3xl rounded-br-3xl">
     <!-- Left Side: Logo and Text -->
     <div class="flex items-center">
         <a href="{{ url('/') }}">
