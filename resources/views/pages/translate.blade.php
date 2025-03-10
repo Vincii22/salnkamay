@@ -23,7 +23,11 @@
         transform: scaleX(-1); /* Flips the camera horizontally */
         -webkit-transform: scaleX(-1); /* Ensures compatibility with older browsers */
         transform-origin: center; /* Keeps the video centered */
+        max-width: 640px; /* Set a reasonable max width */
+        height: auto;      /* Maintain aspect ratio */
     }
+
+
 </style>
 
 @extends('layouts.app')

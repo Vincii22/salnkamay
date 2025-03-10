@@ -11,12 +11,24 @@ document.addEventListener("DOMContentLoaded", async function () {
     let detectionStability = {};
     let isCameraActive = false;
 
-    const MATCH_THRESHOLD = 0.35;
+    const MATCH_THRESHOLD = 500;
     const DISPLAY_DELAY = 1000;
     let debounceTimer = null;
 
     btnStopCamera.textContent = "Stop Camera";
-    btnStopCamera.classList.add("bg-red-500", "text-white", "px-4", "py-2", "rounded", "mt-4", "hidden");
+
+btnStopCamera.classList.add(
+    "w-full",         // Ensures full width
+    "mt-4",           // Adds spacing
+    "bg-red-500",
+    "text-white",
+    "px-4",
+    "py-2",
+    "rounded",
+    "hidden"          // Initially hidden
+);
+imageContainer.appendChild(btnStopCamera); // Ensures it's added inside the container
+
     imageContainer.appendChild(btnStopCamera);
 
     async function loadLandmarksDataset() {
@@ -148,22 +160,30 @@ document.addEventListener("DOMContentLoaded", async function () {
 
             console.log(`🧩 Best Match: ${bestMatch.match} (Distance: ${bestMatch.distance})`);
 
+            // ✅ Relax the threshold condition for better matching
             if (bestMatch.match !== "Unknown Gesture") {
-                // 🛑 Clear previous debounce timer before updating
-                clearTimeout(debounceTimer);
+                // 🟢 Display the detected match immediately
+                showMessage(`🖐️ Detected: ${bestMatch.match}`);
 
-                // 🕒 Add debounce delay to prevent rapid changes
+                // 🟠 Only apply debounce logic to prevent flickering
+                clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
                     showMessage(`🖐️ Detected: ${bestMatch.match}`);
-                }, 500); // 500ms delay for smoother updates
+                }, 500);
             } else {
-                showMessage("❓ No match found");
+                // Show "No match found" only if nothing has been detected for 1 second
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    showMessage("❓ No match found");
+                }, 1000); // Delayed fallback to avoid flickering
             }
+
         } else {
             console.warn("⚠️ Unstable Movement - Skipping Frame");
             showMessage("⚠️ Unstable Movement - Please hold steady");
         }
     }
+
 
 
     function findBestMatch(detectedLandmarks) {
