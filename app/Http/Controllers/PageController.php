@@ -9,6 +9,11 @@ use App\Models\Letter;
 use App\Models\Phrase;
 use App\Models\TimeExpression;
 use App\Models\Animal;
+use App\Models\Weather;
+use App\Models\Month;
+use App\Models\Transportations;
+use App\Models\FamilySigns;
+use App\Models\MoneyMatters;
 class PageController extends Controller
 {
     public function index()
@@ -44,6 +49,11 @@ class PageController extends Controller
                     $phrases = Phrase::whereRaw('LOWER(phrase) = ?', [$word])->get();
                     $foods = Food::whereRaw('LOWER(food) = ?', [$word])->get();
                     $animals = Animal::whereRaw('LOWER(animal) = ?', [$word])->get();
+                    $weathers = Weather::whereRaw('LOWER(weather) = ?', [$word])->get();
+                    $months = Month::whereRaw('LOWER(month) = ?', [$word])->get();
+                    $transportations = Transportations::whereRaw('LOWER(transportation) = ?', [$word])->get();
+                    $moneyMatters = MoneyMatters::whereRaw('LOWER(money_matter) = ?', [$word])->get();
+                    $familySigns = FamilySigns::whereRaw('LOWER(family_sign) = ?', [$word])->get();
                     $timeExpressions = TimeExpression::whereRaw('LOWER(time_expression) = ?', [$word])->get();
 
                     $signs = $signs->merge($letters)
@@ -51,7 +61,12 @@ class PageController extends Controller
                                    ->merge($phrases)
                                    ->merge($foods)
                                    ->merge($animals)
-                                   ->merge($timeExpressions);
+                                   ->merge($timeExpressions)
+                                   ->merge($weathers)
+                                   ->merge($months)
+                                   ->merge($transportations)
+                                   ->merge($moneyMatters)
+                                   ->merge($familySigns);
                 }
             } else {
                 $signs = $phrases;

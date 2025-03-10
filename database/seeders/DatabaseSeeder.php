@@ -19,5 +19,10 @@ class DatabaseSeeder extends Seeder
         $this->call(class: TimeExpressionsTableSeeder::class);
         $this->call(class: FoodsTableSeeder::class);
         $this->call(class: AnimalsTableSeeder::class);
+        $this->call(class: FamilySignsTableSeeder::class);
+        $this->call(class: MoneyMattersTableSeeder::class);
+        $this->call(class: WeathersTableSeeder::class);
+        $this->call(class: MonthsTableSeeder::class);
+        $this->call(class: TransportationsTableSeeder::class);
     }
 }

@@ -57,6 +57,43 @@ return new class extends Migration
             $table->string('video_path');
             $table->timestamps();
         });
+
+        Schema::create('weathers', function (Blueprint $table) {
+            $table->id();
+            $table->string('weather');
+            $table->string('video_path');
+            $table->timestamps();
+        });
+
+        Schema::create('family_signs', function (Blueprint $table) {
+            $table->id();
+            $table->string('family_sign');
+            $table->string('video_path');
+            $table->timestamps();
+        });
+
+        Schema::create('money_matters', function (Blueprint $table) {
+            $table->id();
+            $table->string('money_matter');
+            $table->string('video_path');
+            $table->timestamps();
+        });
+
+        Schema::create('months', function (Blueprint $table) {
+            $table->id();
+            $table->string('month');
+            $table->string('video_path');
+            $table->timestamps();
+        });
+
+        Schema::create('transportations', function (Blueprint $table) {
+            $table->id();
+            $table->string('transportation');
+            $table->string('video_path');
+            $table->timestamps();
+        });
+
+
     }
 
     /**
@@ -64,11 +101,16 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('foods');
-        Schema::dropIfExists('time_expressions');
-        Schema::dropIfExists('phrases');
-        Schema::dropIfExists('numbers');
         Schema::dropIfExists('letters');
+        Schema::dropIfExists('numbers');
+        Schema::dropIfExists('phrases');
+        Schema::dropIfExists('time_expressions');
+        Schema::dropIfExists('food');
         Schema::dropIfExists('animals');
+        Schema::dropIfExists('weathers');
+        Schema::dropIfExists('family_signs');
+        Schema::dropIfExists('money_matters');
+        Schema::dropIfExists('months');
+        Schema::dropIfExists('transportations');
     }
 };
