@@ -18,5 +18,6 @@ class DatabaseSeeder extends Seeder
         $this->call(class: NumbersTableSeeder::class);
         $this->call(class: TimeExpressionsTableSeeder::class);
         $this->call(class: FoodsTableSeeder::class);
+        $this->call(class: AnimalsTableSeeder::class);
     }
 }

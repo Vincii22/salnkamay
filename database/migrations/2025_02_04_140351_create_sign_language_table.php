@@ -49,6 +49,14 @@ return new class extends Migration
             $table->string('video_path');
             $table->timestamps();
         });
+
+
+        Schema::create('animals', function (Blueprint $table) {
+            $table->id();
+            $table->string('animal');
+            $table->string('video_path');
+            $table->timestamps();
+        });
     }
 
     /**
@@ -61,5 +69,6 @@ return new class extends Migration
         Schema::dropIfExists('phrases');
         Schema::dropIfExists('numbers');
         Schema::dropIfExists('letters');
+        Schema::dropIfExists('animals');
     }
 };

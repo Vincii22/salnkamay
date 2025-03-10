@@ -8,6 +8,7 @@ use App\Models\Number;
 use App\Models\Letter;
 use App\Models\Phrase;
 use App\Models\TimeExpression;
+use App\Models\Animal;
 class PageController extends Controller
 {
     public function index()
@@ -42,12 +43,14 @@ class PageController extends Controller
                     $numbers = Number::whereRaw('LOWER(number) = ?', [$word])->get();
                     $phrases = Phrase::whereRaw('LOWER(phrase) = ?', [$word])->get();
                     $foods = Food::whereRaw('LOWER(food) = ?', [$word])->get();
+                    $animals = Animal::whereRaw('LOWER(animal) = ?', [$word])->get();
                     $timeExpressions = TimeExpression::whereRaw('LOWER(time_expression) = ?', [$word])->get();
 
                     $signs = $signs->merge($letters)
                                    ->merge($numbers)
                                    ->merge($phrases)
                                    ->merge($foods)
+                                   ->merge($animals)
                                    ->merge($timeExpressions);
                 }
             } else {

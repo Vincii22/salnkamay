@@ -21,23 +21,22 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     async function loadLandmarksDataset() {
         try {
-            const [foods, numbers, alphabets] = await Promise.all([
-                fetch("/hand_landmarks.json"),
+            const [numbers, alphabets] = await Promise.all([
                 fetch("/hand_landmarks_numbers.json"),
                 fetch("/hand_landmarks_alphabets.json")
             ]);
 
             gestureDatasets = {
-                food: await foods.json(),
                 numbers: await numbers.json(),
                 alphabets: await alphabets.json()
             };
 
-            console.log("✅ Landmark datasets loaded:", gestureDatasets); // <-- Add this to confirm dataset structure
+            console.log("✅ Landmark datasets loaded:", gestureDatasets);
         } catch (error) {
             console.error("❌ Error loading landmark datasets:", error);
         }
     }
+
 
 
     function showMessage(message) {
@@ -131,13 +130,14 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     let stableFrameCount = 0;
     const STABILITY_THRESHOLD = 5; // Minimum number of stable frames required
-
     function processResults(results) {
         if (results.multiHandLandmarks.length) {
             stableFrameCount++;
-            console.log("🔎 Detected Landmarks:", normalizeLandmarks(results.multiHandLandmarks[0])); // <-- Add this
+            console.log("🔎 Detected Landmarks:", normalizeLandmarks(results.multiHandLandmarks[0]));
         } else {
-            stableFrameCount = 0; // Reset counter on instability
+            stableFrameCount = 0;
+            showMessage("❓ No hand detected");
+            return;
         }
 
         if (stableFrameCount >= STABILITY_THRESHOLD) {
@@ -149,20 +149,25 @@ document.addEventListener("DOMContentLoaded", async function () {
             console.log(`🧩 Best Match: ${bestMatch.match} (Distance: ${bestMatch.distance})`);
 
             if (bestMatch.match !== "Unknown Gesture") {
-                showMessage(`🖐️ Detected: ${bestMatch.match}`);
+                // 🛑 Clear previous debounce timer before updating
+                clearTimeout(debounceTimer);
+
+                // 🕒 Add debounce delay to prevent rapid changes
+                debounceTimer = setTimeout(() => {
+                    showMessage(`🖐️ Detected: ${bestMatch.match}`);
+                }, 500); // 500ms delay for smoother updates
             } else {
                 showMessage("❓ No match found");
             }
-
         } else {
             console.warn("⚠️ Unstable Movement - Skipping Frame");
+            showMessage("⚠️ Unstable Movement - Please hold steady");
         }
     }
 
 
     function findBestMatch(detectedLandmarks) {
         const matches = [
-            matchHandGesture(detectedLandmarks, gestureDatasets.food),
             matchHandGesture(detectedLandmarks, gestureDatasets.numbers),
             matchHandGesture(detectedLandmarks, gestureDatasets.alphabets)
         ];
@@ -177,7 +182,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         return bestMatch;
     }
-
 
     function normalizeLandmarks(landmarks) {
         const normalized = landmarks.map((point) => ({
@@ -213,32 +217,28 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
 
-    function calculateDistance(hand1, hand2) {
-        if (!hand1 || !hand2 || hand1.length !== hand2.length) {
-            console.warn("⚠️ Invalid landmarks data for distance calculation");
-            return Infinity;  // Prevents `NaN` errors
+    function calculateDistance(detectedLandmarks) {
+        if (!detectedLandmarks || detectedLandmarks.length === 0) {
+            console.warn("⚠️ No valid landmarks detected");
+            return Infinity;  // Treat no detection as invalid
         }
 
         let totalDistance = 0;
-        for (let i = 0; i < hand1.length; i++) {
-            const p1 = hand1[i];
-            const p2 = hand2[i];
+        for (let i = 0; i < detectedLandmarks.length; i++) {
+            const point = detectedLandmarks[i];
 
-            // Ensure points are valid
-            if (!p1 || !p2 || typeof p1.x !== 'number' || typeof p2.x !== 'number') {
+            if (!point || isNaN(point.x) || isNaN(point.y)) {
                 console.warn(`⚠️ Invalid point at index ${i}`);
-                return Infinity;  // Prevents `NaN` propagation
+                continue;  // Skip invalid points
             }
 
-            totalDistance += (
-                (p1.x - p2.x) ** 2 +
-                (p1.y - p2.y) ** 2 +
-                (p1.z - p2.z) ** 2
-            );
+            totalDistance += point.x ** 2 + point.y ** 2 + (point.z || 0) ** 2;
         }
 
-        return Math.sqrt(totalDistance / hand1.length); // Averaged distance for stability
+        return Math.sqrt(totalDistance / detectedLandmarks.length);
     }
+
+
 
 
     signToTextButton.addEventListener("click", async function () {

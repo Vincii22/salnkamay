@@ -37,7 +37,7 @@
         <div id="image-container" class="w-full flex flex-wrap justify-center items-center gap-2">
             @if ($signs->isNotEmpty())
                 @foreach ($signs as $sign)
-                    <div class="sm:w-[90vw] md:w-[50vw] lg:w-[35vw] flex-shrink-0">
+                    <div class="sm:w-[90vw] md:w-[50vw] lg:w-[30vw] flex-shrink-0">
                         @if ($sign->image_path ?? false)
                             <img src="{{ Storage::url($sign->image_path) }}" alt="Sign Image" class="w-full max-h-[40vh] object-contain rounded-lg">
                         @elseif ($sign->video_path ?? false)
